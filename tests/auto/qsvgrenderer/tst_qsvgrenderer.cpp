@@ -67,8 +67,10 @@ private slots:
     void oss_fuzz_24738();
     void oss_fuzz_61586();
     void oss_fuzz_42532991();
+    void oss_fuzz_390467765();
     void oss_fuzz_399769595();
     void imageRendering();
+    void imageMalformedDataUrl();
     void illegalAnimateTransform_data();
     void illegalAnimateTransform();
     void tSpanLineBreak();
@@ -1740,6 +1742,12 @@ void tst_QSvgRenderer::oss_fuzz_42532991()
     QSvgRenderer().load(QByteArray("<svg><pattern height=\"3\" width=\"9\" id=\"c\"><path d=\"v4T1-\" stroke=\"url(#c)\"><symbol>"));
 }
 
+void tst_QSvgRenderer::oss_fuzz_390467765()
+{
+    // resulted in stack overflow
+    QSvgRenderer().load(QByteArray("<svg stroke=\"url(#c)\"><pattern height=\"2\" width=\"4\" id=\"c\"/><path stroke=\"#F00\" d=\"v2\"/></svg>"));
+}
+
 void tst_QSvgRenderer::oss_fuzz_399769595()
 {
     // resulted in null pointer deref
@@ -1790,6 +1798,16 @@ void tst_QSvgRenderer::imageRendering() {
         p2.end();
         QCOMPARE(img1, img2);
     }
+}
+
+void tst_QSvgRenderer::imageMalformedDataUrl()
+{
+    // The input below triggered an assert in qDecodeDataUrl() which is used when creating svg
+    // nodes. That assert is fixed and tested in qtbase. Still, the input is invalid and should be
+    // treated as such. The test makes sure that QSvgRenderer properly warns about it.
+    QTest::ignoreMessage(QtWarningMsg, R"(Could not create image from "data:charset,")");
+    QVERIFY(QSvgRenderer().load(
+            QByteArray(R"(<svg><image width="1" height="1" xlink:href="data:charset,"/></svg>)")));
 }
 
 void tst_QSvgRenderer::illegalAnimateTransform_data()
